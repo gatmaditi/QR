@@ -6,10 +6,20 @@
 <meta name="robots" content="noindex">
 <title>Redirigiendo</title>
 <style>
-  body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;color:#8aa397;background:#0a0e0c;text-align:center;padding:24px}
-  .spin{width:34px;height:34px;border:3px solid #1f2d25;border-top-color:#22c55e;border-radius:50%;animation:s .8s linear infinite;margin:0 auto 14px}
+  :root{--bg:#0a0e0c;--card:#111815;--bd:#1f2d25;--tx:#e7f0ea;--mut:#8aa397;--ac:#22c55e;--ac-tx:#04130a}
+  *{box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;color:var(--mut);background:var(--bg);text-align:center;padding:24px}
+  .spin{width:34px;height:34px;border:3px solid var(--bd);border-top-color:var(--ac);border-radius:50%;animation:s .8s linear infinite;margin:0 auto 14px}
   @keyframes s{to{transform:rotate(360deg)}}
-  .big{font-size:18px;color:#e7f0ea}
+  .big{font-size:18px;color:var(--tx)}
+  .card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:26px 22px}
+  .lbl{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
+  .host{font-size:24px;font-weight:700;color:var(--ac);margin:10px 0 8px;word-break:break-all}
+  .full{font-size:13px;color:var(--mut);word-break:break-all;max-height:4.8em;overflow:hidden}
+  .bar{height:4px;background:var(--bd);border-radius:99px;overflow:hidden;margin:20px 0 18px}
+  .bar span{display:block;height:100%;width:0;background:var(--ac);animation:fill 2.5s linear forwards}
+  @keyframes fill{to{width:100%}}
+  .go{display:inline-block;background:var(--ac);color:var(--ac-tx);font-weight:600;text-decoration:none;border-radius:8px;padding:10px 22px}
 </style>
 </head>
 <body>
@@ -17,9 +27,38 @@
 <script>
 const SB_URL = 'https://ahgefjudbksiqqzslupg.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZ2VmanVkYmtzaXFxenNsdXBnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUzNTQ5ODAsImV4cCI6MjExMDkzMDk4MH0.Knyx0YoJYj6cp9j-vE5XSfEeZl-Tm5PuDilY-8jPcMk';
+const DELAY_MS = 2500;
+
+function el(tag, cls, text){
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
 
 function fail(msg){
-  document.getElementById('box').innerHTML = '<div class="big">' + msg + '</div>';
+  const box = document.getElementById('box');
+  box.innerHTML = '';
+  box.appendChild(el('div', 'big', msg));
+}
+
+function show(url){
+  const host = new URL(url).hostname;
+  const box = document.getElementById('box');
+  box.innerHTML = '';
+  const card = el('div', 'card');
+  card.appendChild(el('div', 'lbl', 'Te estamos llevando a'));
+  card.appendChild(el('div', 'host', host));
+  card.appendChild(el('div', 'full', url));
+  const bar = el('div', 'bar');
+  bar.appendChild(el('span'));
+  card.appendChild(bar);
+  const go = el('a', 'go', 'Ir ahora');
+  go.href = url;
+  go.rel = 'noopener noreferrer';
+  card.appendChild(go);
+  box.appendChild(card);
+  setTimeout(() => { location.replace(url); }, DELAY_MS);
 }
 
 (async () => {
@@ -37,7 +76,7 @@ function fail(msg){
     });
     const url = await res.json();
     if (typeof url === 'string' && /^https?:\/\//i.test(url)) {
-      location.replace(url);
+      show(url);
     } else {
       fail('Este enlace no está disponible.');
     }
