@@ -83,6 +83,9 @@ Minimum version required to store current data is: `+i+`.
   .passwrap input{padding-right:46px}
   .eyebtn{position:absolute;right:4px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--mut);padding:8px;display:flex;align-items:center;justify-content:center;border-radius:6px}
   .eyebtn:hover{color:var(--ac);border:none}
+  .iconbtn{display:flex;align-items:center;justify-content:center;padding:8px 10px}
+  .box h3.sec{margin:22px 0 6px;font-size:15px;border-top:1px solid var(--bd);padding-top:16px}
+  .box h2 + h3.sec{border-top:none;padding-top:0;margin-top:14px}
   .hide{display:none!important}
   .vrow{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd)}
   @media(max-width:700px){.hm{display:none}}
@@ -105,9 +108,7 @@ Minimum version required to store current data is: `+i+`.
     <label for="pass">Contraseña</label>
     <div class="passwrap">
       <input id="pass" type="password" autocomplete="current-password">
-      <button type="button" class="eyebtn" onclick="togglePass()" aria-label="Mostrar u ocultar contraseña">
-        <span id="eye"></span>
-      </button>
+      <button type="button" class="eyebtn" onclick="toggleEye(this)" aria-label="Mostrar u ocultar contraseña"></button>
     </div>
     <div id="signupBox" class="hide">
       <label for="email">Correo (opcional)</label>
@@ -131,6 +132,7 @@ Minimum version required to store current data is: `+i+`.
       <h1>Mis <span>QR</span></h1>
       <div class="sub" id="who"></div>
     </div>
+    <button class="iconbtn" onclick="openSettings()" aria-label="Ajustes" title="Ajustes"><span id="gear"></span></button>
     <button onclick="logout()">Salir</button>
   </header>
   <main>
@@ -154,20 +156,54 @@ Minimum version required to store current data is: `+i+`.
 <!-- MODAL EDITAR -->
 <div id="formModal" class="modal">
   <div class="box">
-    <h2>Editar QR</h2>
-    <label for="fName">Nombre</label>
-    <input id="fName" type="text">
-    <label for="fUrl">A dónde lleva (link completo)</label>
+    <h2>Cambiar a dónde lleva</h2>
+    <div class="hint" id="fSub" style="margin:0 0 4px"></div>
+    <label for="fUrl">Link de destino</label>
     <input id="fUrl" type="url" placeholder="https://...">
     <div class="hint">El QR impreso o la tarjeta no cambian: solo cambia a dónde llevan.</div>
-    <label style="display:flex;gap:8px;align-items:center;color:var(--tx)">
-      <input id="fActive" type="checkbox"> Activo
-    </label>
     <div class="row" style="margin-top:16px">
       <button class="p" onclick="saveForm()">Guardar</button>
       <button onclick="closeModals()">Cancelar</button>
     </div>
     <div id="formMsg" class="msg err"></div>
+  </div>
+</div>
+
+<!-- MODAL AJUSTES -->
+<div id="setModal" class="modal">
+  <div class="box">
+    <h2>Ajustes</h2>
+
+    <h3 class="sec">Usuario</h3>
+    <input id="sUser" type="text" autocapitalize="none" spellcheck="false" autocomplete="off">
+    <div class="hint">De 3 a 20 caracteres. Solo letras (sin tildes ni ñ), números, guion bajo (_) y guion (-). Sin espacios. Si ese usuario ya lo tiene otra persona, te avisamos.</div>
+    <div class="row" style="margin-top:10px"><button class="p" onclick="saveUsername()">Guardar usuario</button></div>
+    <div id="msgUser" class="msg"></div>
+
+    <h3 class="sec">Contraseña</h3>
+    <label for="pCur" style="margin-top:0">Contraseña actual</label>
+    <div class="passwrap">
+      <input id="pCur" type="password" autocomplete="current-password">
+      <button type="button" class="eyebtn" onclick="toggleEye(this)" aria-label="Mostrar u ocultar contraseña"></button>
+    </div>
+    <label for="pNew">Contraseña nueva</label>
+    <div class="passwrap">
+      <input id="pNew" type="password" autocomplete="new-password">
+      <button type="button" class="eyebtn" onclick="toggleEye(this)" aria-label="Mostrar u ocultar contraseña"></button>
+    </div>
+    <div class="row" style="margin-top:10px"><button class="p" onclick="savePassword()">Cambiar contraseña</button></div>
+    <div id="msgPass" class="msg"></div>
+
+    <h3 class="sec">Correo</h3>
+    <div id="mailHave" class="hide"><div class="hint" style="margin-top:0">Correo vinculado: <b id="mailVal" style="color:var(--tx)"></b></div></div>
+    <div id="mailNone" class="hide">
+      <input id="sMail" type="email" placeholder="tucorreo@ejemplo.com" autocomplete="email">
+      <div class="hint">Todavía no tienes un correo vinculado. Sirve para que podamos ayudarte a recuperar tu cuenta si olvidas la contraseña. Una vez guardado, no se puede cambiar desde aquí.</div>
+      <div class="row" style="margin-top:10px"><button class="p" onclick="saveEmail()">Guardar correo</button></div>
+    </div>
+    <div id="msgMail" class="msg"></div>
+
+    <div class="row" style="margin-top:16px"><button onclick="closeModals()">Cerrar</button></div>
   </div>
 </div>
 
@@ -209,6 +245,8 @@ const SVG_OPEN = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" st
 const ICON_EYE = SVG_OPEN + '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
 const ICON_EYE_OFF = SVG_OPEN + '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
 
+const GEAR_ICON = SVG_OPEN + '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = d => d ? new Date(d).toLocaleString('es-BO', { dateStyle: 'short', timeStyle: 'short' }) : '-';
@@ -227,11 +265,11 @@ function setMsg(text, ok){
   m.className = 'msg ' + (ok ? 'ok' : 'err');
 }
 
-function togglePass(){
-  const input = $('pass');
+function toggleEye(btn){
+  const input = btn.parentElement.querySelector('input');
   const show = input.type === 'password';
   input.type = show ? 'text' : 'password';
-  $('eye').innerHTML = show ? ICON_EYE_OFF : ICON_EYE;
+  btn.innerHTML = show ? ICON_EYE_OFF : ICON_EYE;
 }
 function setMode(m){
   mode = m;
@@ -246,7 +284,8 @@ function setMode(m){
 
 /* ---------- Sesión ---------- */
 async function init(){
-  $('eye').innerHTML = ICON_EYE;
+  document.querySelectorAll('.eyebtn').forEach(b => { b.innerHTML = ICON_EYE; });
+  $('gear').innerHTML = GEAR_ICON;
   $('pass').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
   $('code').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
   $('user').addEventListener('keydown', e => { if (e.key === 'Enter') $('pass').focus(); });
@@ -264,9 +303,12 @@ async function showApp(){
   if (!me) { showAuth(); return; }
   $('authView').classList.add('hide');
   $('appView').classList.remove('hide');
+  await showHeader();
+  await loadAll();
+}
+async function showHeader(){
   const { data: prof } = await sb.from('profiles').select('client_name,username').eq('id', me);
   $('who').textContent = prof && prof[0] ? (prof[0].client_name + (prof[0].username ? ' - ' + prof[0].username : '')) : '';
-  await loadAll();
 }
 
 async function go(){
@@ -365,21 +407,111 @@ function openForm(id){
   const x = links.find(l => l.id === id);
   if (!x) return;
   editingId = id;
-  $('fName').value = x.name;
+  $('fSub').textContent = x.name;
   $('fUrl').value = x.destination_url;
-  $('fActive').checked = x.active;
   $('formMsg').textContent = '';
   $('formModal').classList.add('show');
 }
 async function saveForm(){
-  const name = $('fName').value.trim();
   const url = $('fUrl').value.trim();
-  if (!name) { $('formMsg').textContent = 'Ponle un nombre.'; return; }
   if (!/^https?:\/\//i.test(url)) { $('formMsg').textContent = 'El link debe empezar con http:// o https://'; return; }
-  const { error } = await sb.from('qr_links').update({ name: name, destination_url: url, active: $('fActive').checked }).eq('id', editingId);
+  const { error } = await sb.from('qr_links').update({ destination_url: url }).eq('id', editingId);
   if (error) { $('formMsg').textContent = error.message; return; }
   closeModals();
   loadAll();
+}
+
+/* ---------- Ajustes ---------- */
+const ACCOUNT_ERRORS = {
+  usuario_invalido: SIGNUP_ERRORS.usuario_invalido,
+  usuario_ocupado: 'Ese usuario ya lo tiene otra persona. Elige otro.',
+  no_permitido: 'Esta cuenta no puede cambiar el usuario.',
+  sin_sesion: 'Tu sesión venció. Vuelve a iniciar sesión.'
+};
+let profile = { username: null, contact_email: null };
+function setBox(id, text, ok){
+  const m = $(id);
+  m.textContent = text || '';
+  m.className = 'msg ' + (ok ? 'ok' : 'err');
+}
+async function loadProfile(){
+  const { data } = await sb.from('profiles').select('username,contact_email').eq('id', me);
+  profile = data && data[0] ? data[0] : { username: null, contact_email: null };
+  $('sUser').value = profile.username || '';
+  $('sUser').disabled = !profile.username;
+  $('mailHave').classList.toggle('hide', !profile.contact_email);
+  $('mailNone').classList.toggle('hide', !!profile.contact_email);
+  $('mailVal').textContent = profile.contact_email || '';
+}
+async function openSettings(){
+  closeModals();
+  ['msgUser', 'msgPass', 'msgMail'].forEach(id => setBox(id, ''));
+  $('pCur').value = '';
+  $('pNew').value = '';
+  $('sMail').value = '';
+  document.querySelectorAll('#setModal .passwrap input').forEach(i => { i.type = 'password'; });
+  document.querySelectorAll('#setModal .eyebtn').forEach(b => { b.innerHTML = ICON_EYE; });
+  $('setModal').classList.add('show');
+  await loadProfile();
+}
+async function saveUsername(){
+  setBox('msgUser', '');
+  const u = $('sUser').value.trim().toLowerCase();
+  if (!USER_RE.test(u)) { setBox('msgUser', SIGNUP_ERRORS.usuario_invalido); return; }
+  if (u === profile.username) { setBox('msgUser', 'Ese ya es tu usuario.'); return; }
+  const { data: s } = await sb.auth.getSession();
+  const token = s && s.session ? s.session.access_token : null;
+  if (!token) { closeModals(); showAuth(); return; }
+  let res, out = {};
+  try {
+    res = await fetch(SB_URL + '/functions/v1/account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ action: 'change_username', username: u })
+    });
+    out = await res.json();
+  } catch (e) {
+    setBox('msgUser', 'No se pudo conectar. Revisa tu internet e intenta de nuevo.');
+    return;
+  }
+  if (!res.ok || !out.ok) { setBox('msgUser', ACCOUNT_ERRORS[out.error] || 'No se pudo cambiar el usuario. Intenta de nuevo.'); return; }
+  await sb.auth.refreshSession();
+  profile.username = out.username;
+  $('sUser').value = out.username;
+  setBox('msgUser', 'Listo. Desde ahora entras con "' + out.username + '".', true);
+  await showHeader();
+}
+async function savePassword(){
+  setBox('msgPass', '');
+  const cur = $('pCur').value;
+  const nw = $('pNew').value;
+  if (!cur || !nw) { setBox('msgPass', 'Escribe tu contraseña actual y la nueva.'); return; }
+  if (nw.length < 6) { setBox('msgPass', SIGNUP_ERRORS.clave_corta); return; }
+  if (nw === cur) { setBox('msgPass', 'La contraseña nueva debe ser distinta a la actual.'); return; }
+  const { data: u } = await sb.auth.getUser();
+  const email = u && u.user ? u.user.email : null;
+  if (!email) { closeModals(); showAuth(); return; }
+  const chk = await sb.auth.signInWithPassword({ email: email, password: cur });
+  if (chk.error) { setBox('msgPass', 'La contraseña actual no es correcta.'); return; }
+  const { error } = await sb.auth.updateUser({ password: nw });
+  if (error) { setBox('msgPass', 'No se pudo cambiar la contraseña. Intenta de nuevo.'); return; }
+  $('pCur').value = '';
+  $('pNew').value = '';
+  setBox('msgPass', 'Contraseña cambiada.', true);
+}
+async function saveEmail(){
+  setBox('msgMail', '');
+  const v = $('sMail').value.trim();
+  if (!MAIL_RE.test(v)) { setBox('msgMail', SIGNUP_ERRORS.correo_invalido); return; }
+  const { error } = await sb.rpc('set_my_contact_email', { p_email: v });
+  if (error) {
+    const m = String(error.message || '');
+    setBox('msgMail', /YA_TIENE/.test(m) ? 'Ya tienes un correo vinculado.' : /INVALIDO/.test(m) ? SIGNUP_ERRORS.correo_invalido : 'No se pudo guardar. Intenta de nuevo.');
+    await loadProfile();
+    return;
+  }
+  setBox('msgMail', 'Correo guardado.', true);
+  await loadProfile();
 }
 
 /* ---------- Detalle ---------- */
