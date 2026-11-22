@@ -21,6 +21,7 @@ Minimum version required to store current data is: `+i+`.
     --tx:#e7f0ea; --mut:#8aa397; --ac:#22c55e; --ac-tx:#04130a; --bad:#f87171;
   }
   *{box-sizing:border-box}
+  html{color-scheme:dark}
   body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--tx)}
   header{background:var(--card);border-bottom:1px solid var(--bd);padding:14px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
   header .t{flex:1}
@@ -37,6 +38,15 @@ Minimum version required to store current data is: `+i+`.
   input[type=text],input[type=url],input[type=email],input[type=password]{
     width:100%;font:inherit;padding:10px 12px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);outline:none
   }
+  input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus,input:-webkit-autofill:active{
+    -webkit-box-shadow:0 0 0 1000px var(--bg) inset !important;
+    box-shadow:0 0 0 1000px var(--bg) inset !important;
+    -webkit-text-fill-color:var(--tx) !important;
+    caret-color:var(--tx);
+    border:1px solid var(--bd);
+    transition:background-color 9999s ease-in-out 0s;
+  }
+  input:-webkit-autofill:focus{border-color:var(--ac)}
   input:focus{border-color:var(--ac)}
   input::placeholder{color:#55695d}
   input[type=checkbox]{accent-color:var(--ac);width:16px;height:16px}
