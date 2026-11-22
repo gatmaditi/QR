@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Redirigiendo</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;color:#8aa397;background:#0a0e0c;text-align:center;padding:24px}
+  .spin{width:34px;height:34px;border:3px solid #1f2d25;border-top-color:#22c55e;border-radius:50%;animation:s .8s linear infinite;margin:0 auto 14px}
+  @keyframes s{to{transform:rotate(360deg)}}
+  .big{font-size:18px;color:#e7f0ea}
+</style>
+</head>
+<body>
+<div id="box"><div class="spin"></div><div>Redirigiendo...</div></div>
+<script>
+const SB_URL = 'https://ahgefjudbksiqqzslupg.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZ2VmanVkYmtzaXFxenNsdXBnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUzNTQ5ODAsImV4cCI6MjExMDkzMDk4MH0.Knyx0YoJYj6cp9j-vE5XSfEeZl-Tm5PuDilY-8jPcMk';
+
+function fail(msg){
+  document.getElementById('box').innerHTML = '<div class="big">' + msg + '</div>';
+}
+
+(async () => {
+  const code = (new URLSearchParams(location.search).get('c') || '').trim();
+  if (!code) return fail('Enlace no válido.');
+  try {
+    const res = await fetch(SB_URL + '/rest/v1/rpc/resolve_qr', {
+      method: 'POST',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ p_code: code, p_user_agent: navigator.userAgent })
+    });
+    const url = await res.json();
+    if (typeof url === 'string' && /^https?:\/\//i.test(url)) {
+      location.replace(url);
+    } else {
+      fail('Este enlace no está disponible.');
+    }
+  } catch (e) {
+    fail('No se pudo abrir el enlace. Intenta de nuevo.');
+  }
+})();
+</script>
+</body>
+</html>
