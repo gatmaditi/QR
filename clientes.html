@@ -99,8 +99,9 @@ Minimum version required to store current data is: `+i+`.
       <button id="tabIn" class="on" onclick="setMode('in')">Iniciar sesión</button>
       <button id="tabUp" onclick="setMode('up')">Crear cuenta</button>
     </div>
-    <label for="email">Correo</label>
-    <input id="email" type="email" autocomplete="username">
+    <label for="user">Usuario</label>
+    <input id="user" type="text" autocomplete="username" autocapitalize="none" spellcheck="false">
+    <div id="userHint" class="hint hide">De 3 a 20 caracteres. Solo letras (sin tildes ni ñ), números, guion bajo (_) y guion (-). Sin espacios. No importa si usas mayúsculas.</div>
     <label for="pass">Contraseña</label>
     <div class="passwrap">
       <input id="pass" type="password" autocomplete="current-password">
@@ -108,7 +109,10 @@ Minimum version required to store current data is: `+i+`.
         <span id="eye"></span>
       </button>
     </div>
-    <div id="codeBox" class="hide">
+    <div id="signupBox" class="hide">
+      <label for="email">Correo (opcional)</label>
+      <input id="email" type="email" autocomplete="email" placeholder="Puedes dejarlo vacío">
+      <div class="hint">Sirve para que podamos ayudarte a recuperar tu cuenta si algún día olvidas la contraseña. Si no lo pones, no pasa nada, pero entonces tendrías que pedirle ayuda a tu proveedor.</div>
       <label for="code">Código de registro</label>
       <input id="code" type="text" placeholder="XXXX-XXXX" autocomplete="off" style="text-transform:uppercase;letter-spacing:.08em">
       <div class="hint">Es el código que te entregó tu proveedor junto con tu tarjeta.</div>
@@ -190,6 +194,10 @@ const SB_URL = 'https://ahgefjudbksiqqzslupg.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoZ2VmanVkYmtzaXFxenNsdXBnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUzNTQ5ODAsImV4cCI6MjExMDkzMDk4MH0.Knyx0YoJYj6cp9j-vE5XSfEeZl-Tm5PuDilY-8jPcMk';
 const sb = supabase.createClient(SB_URL, SB_KEY);
 const BASE = 'https://gatmaditi.github.io/QR/r.html';
+const AUTH_DOMAIN = 'usuarios.qrnfc.app';
+const USER_RE = /^[a-z0-9][a-z0-9_-]{2,19}$/;
+const MAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const toAuthEmail = u => u + '@' + AUTH_DOMAIN;
 
 let me = null;
 let mode = 'in';
@@ -229,7 +237,8 @@ function setMode(m){
   mode = m;
   $('tabIn').classList.toggle('on', m === 'in');
   $('tabUp').classList.toggle('on', m === 'up');
-  $('codeBox').classList.toggle('hide', m !== 'up');
+  $('signupBox').classList.toggle('hide', m !== 'up');
+  $('userHint').classList.toggle('hide', m !== 'up');
   $('btnGo').textContent = m === 'in' ? 'Iniciar sesión' : 'Crear mi cuenta';
   $('pass').autocomplete = m === 'in' ? 'current-password' : 'new-password';
   setMsg('');
@@ -240,7 +249,7 @@ async function init(){
   $('eye').innerHTML = ICON_EYE;
   $('pass').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
   $('code').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
-  $('email').addEventListener('keydown', e => { if (e.key === 'Enter') $('pass').focus(); });
+  $('user').addEventListener('keydown', e => { if (e.key === 'Enter') $('pass').focus(); });
   const { data } = await sb.auth.getSession();
   if (data.session) showApp(); else showAuth();
   sb.auth.onAuthStateChange((event, session) => { if (event === 'SIGNED_OUT' || !session) showAuth(); });
@@ -255,45 +264,58 @@ async function showApp(){
   if (!me) { showAuth(); return; }
   $('authView').classList.add('hide');
   $('appView').classList.remove('hide');
-  const { data: prof } = await sb.from('profiles').select('client_name,email').eq('id', me);
-  $('who').textContent = prof && prof[0] ? (prof[0].client_name + ' - ' + prof[0].email) : '';
+  const { data: prof } = await sb.from('profiles').select('client_name,username').eq('id', me);
+  $('who').textContent = prof && prof[0] ? (prof[0].client_name + (prof[0].username ? ' - ' + prof[0].username : '')) : '';
   await loadAll();
 }
 
 async function go(){
   setMsg('');
-  const email = $('email').value.trim();
+  const user = $('user').value.trim();
   const password = $('pass').value;
-  if (!email || !password) { setMsg('Escribe tu correo y tu contraseña.'); return; }
+  if (!user || !password) { setMsg('Escribe tu usuario y tu contraseña.'); return; }
   $('btnGo').disabled = true;
   try {
-    if (mode === 'in') await doLogin(email, password);
-    else await doSignup(email, password);
+    if (mode === 'in') await doLogin(user, password);
+    else await doSignup(user.toLowerCase(), password);
   } finally {
     $('btnGo').disabled = false;
   }
 }
-async function doLogin(email, password){
+async function doLogin(user, password){
+  const email = user.indexOf('@') >= 0 ? user : toAuthEmail(user.toLowerCase());
   const { error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) { setMsg('Correo o contraseña incorrectos.'); return; }
+  if (error) { setMsg('Usuario o contraseña incorrectos.'); return; }
   showApp();
 }
-async function doSignup(email, password){
+const SIGNUP_ERRORS = {
+  usuario_invalido: 'El usuario no es válido. Usa de 3 a 20 caracteres: letras sin tildes, números, _ o -, y sin espacios.',
+  clave_corta: 'La contraseña debe tener al menos 6 caracteres.',
+  correo_invalido: 'El correo no parece válido. Revísalo o déjalo vacío.',
+  codigo_invalido: 'Ese código no es válido o ya fue usado.',
+  usuario_ocupado: 'Ese usuario ya existe. Elige otro.'
+};
+async function doSignup(user, password){
   const code = $('code').value.trim().toUpperCase();
+  const email = $('email').value.trim();
+  if (!USER_RE.test(user)) { setMsg(SIGNUP_ERRORS.usuario_invalido); return; }
+  if (password.length < 6) { setMsg(SIGNUP_ERRORS.clave_corta); return; }
+  if (email && !MAIL_RE.test(email)) { setMsg(SIGNUP_ERRORS.correo_invalido); return; }
   if (!code) { setMsg('Escribe tu código de registro.'); return; }
-  if (password.length < 6) { setMsg('La contraseña debe tener al menos 6 caracteres.'); return; }
-  const chk = await sb.rpc('check_invite', { p_code: code });
-  if (chk.error || chk.data !== true) { setMsg('Ese código no es válido o ya fue usado.'); return; }
-  const { data, error } = await sb.auth.signUp({ email, password, options: { data: { invite_code: code } } });
-  if (error) {
-    const m = String(error.message || '');
-    if (/already registered/i.test(m)) setMsg('Ese correo ya tiene cuenta. Toca "Iniciar sesión".');
-    else if (/database error/i.test(m)) setMsg('No se pudo crear la cuenta. Revisa que el código sea correcto.');
-    else setMsg(m);
+  let res, out = {};
+  try {
+    res = await fetch(SB_URL + '/functions/v1/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY },
+      body: JSON.stringify({ username: user, password: password, email: email, code: code })
+    });
+    out = await res.json();
+  } catch (e) {
+    setMsg('No se pudo conectar. Revisa tu internet e intenta de nuevo.');
     return;
   }
-  if (data.session) { showApp(); return; }
-  const r = await sb.auth.signInWithPassword({ email, password });
+  if (!res.ok || !out.ok) { setMsg(SIGNUP_ERRORS[out.error] || 'No se pudo crear la cuenta. Intenta de nuevo.'); return; }
+  const r = await sb.auth.signInWithPassword({ email: toAuthEmail(user), password });
   if (r.error) { setMsg('Cuenta creada. Toca "Iniciar sesión" para continuar.', true); setMode('in'); return; }
   showApp();
 }
