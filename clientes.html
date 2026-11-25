@@ -144,7 +144,7 @@ Minimum version required to store current data is: `+i+`.
     <div class="card" style="overflow:auto">
       <table>
         <thead><tr>
-          <th>QR</th><th>Nombre</th><th class="hm">Lleva a</th><th>Estado</th><th>Visitas</th><th class="hm">Última visita</th><th></th>
+          <th>QR</th><th class="hm">Lleva a</th><th>Estado</th><th>Visitas</th><th class="hm">Última visita</th><th></th>
         </tr></thead>
         <tbody id="rows"></tbody>
       </table>
@@ -157,7 +157,6 @@ Minimum version required to store current data is: `+i+`.
 <div id="formModal" class="modal">
   <div class="box">
     <h2>Cambiar a dónde lleva</h2>
-    <div class="hint" id="fSub" style="margin:0 0 4px"></div>
     <label for="fUrl">Link de destino</label>
     <input id="fUrl" type="url" placeholder="https://...">
     <div class="hint">El QR impreso o la tarjeta no cambian: solo cambia a dónde llevan.</div>
@@ -210,7 +209,7 @@ Minimum version required to store current data is: `+i+`.
 <!-- MODAL DETALLE -->
 <div id="detailModal" class="modal">
   <div class="box">
-    <h2 id="dName"></h2>
+    <h2 id="dName">Tu QR</h2>
     <div style="text-align:center;margin:14px 0">
       <img id="dQr" alt="QR" style="width:220px;height:220px;border:8px solid #fff;border-radius:8px;background:#fff">
     </div>
@@ -389,7 +388,6 @@ async function render(){
     const img = await QRCode.toDataURL(linkFor(x.code), { width: 128, margin: 1 });
     return '<tr>' +
       '<td><img class="qr" alt="QR" src="' + img + '" onclick="openDetail(\'' + x.id + '\')" title="Ver QR"></td>' +
-      '<td><b>' + esc(x.name) + '</b></td>' +
       '<td class="hm"><div class="dest" title="' + esc(x.destination_url) + '">' + esc(x.destination_url) + '</div></td>' +
       '<td><span class="tag ' + (x.active ? 'on-t' : 'off-t') + '">' + (x.active ? 'Activo' : 'Apagado') + '</span></td>' +
       '<td><b>' + x.total + '</b><div style="color:var(--mut);font-size:12px">' + x.week + ' esta semana</div></td>' +
@@ -407,7 +405,6 @@ function openForm(id){
   const x = links.find(l => l.id === id);
   if (!x) return;
   editingId = id;
-  $('fSub').textContent = x.name;
   $('fUrl').value = x.destination_url;
   $('formMsg').textContent = '';
   $('formModal').classList.add('show');
@@ -518,7 +515,6 @@ async function saveEmail(){
 async function openDetail(id){
   current = links.find(l => l.id === id);
   if (!current) return;
-  $('dName').textContent = current.name;
   $('dQr').src = await QRCode.toDataURL(linkFor(current.code), { width: 512, margin: 1 });
   $('dVisits').textContent = 'Cargando...';
   $('detailModal').classList.add('show');

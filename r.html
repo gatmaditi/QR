@@ -13,7 +13,7 @@
   @keyframes s{to{transform:rotate(360deg)}}
   .big{font-size:18px;color:var(--tx)}
   .card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:26px 22px}
-  .lbl{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
+  .lbl{font-size:13px;color:var(--mut)}
   .host{font-size:24px;font-weight:700;color:var(--ac);margin:10px 0 8px;word-break:break-all}
   .full{font-size:13px;color:var(--mut);word-break:break-all;max-height:4.8em;overflow:hidden}
   .bar{height:4px;background:var(--bd);border-radius:99px;overflow:hidden;margin:20px 0 18px}
@@ -42,12 +42,12 @@ function fail(msg){
   box.appendChild(el('div', 'big', msg));
 }
 
-function show(url){
+function show(url, msg){
   const host = new URL(url).hostname;
   const box = document.getElementById('box');
   box.innerHTML = '';
   const card = el('div', 'card');
-  card.appendChild(el('div', 'lbl', 'Te estamos llevando a'));
+  card.appendChild(el('div', 'lbl', msg || 'Te estamos llevando a'));
   card.appendChild(el('div', 'host', host));
   card.appendChild(el('div', 'full', url));
   const bar = el('div', 'bar');
@@ -65,7 +65,7 @@ function show(url){
   const code = (new URLSearchParams(location.search).get('c') || '').trim();
   if (!code) return fail('Enlace no válido.');
   try {
-    const res = await fetch(SB_URL + '/rest/v1/rpc/resolve_qr', {
+    const res = await fetch(SB_URL + '/rest/v1/rpc/resolve_qr_v2', {
       method: 'POST',
       headers: {
         'apikey': SB_KEY,
@@ -74,9 +74,10 @@ function show(url){
       },
       body: JSON.stringify({ p_code: code, p_user_agent: navigator.userAgent })
     });
-    const url = await res.json();
+    const out = await res.json();
+    const url = out && out.url;
     if (typeof url === 'string' && /^https?:\/\//i.test(url)) {
-      show(url);
+      show(url, typeof out.message === 'string' ? out.message.slice(0, 80) : '');
     } else {
       fail('Este enlace no está disponible.');
     }
